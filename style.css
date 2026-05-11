@@ -1,0 +1,48 @@
+@font-face {
+    font-family: 'Arcade';
+    src: local('Courier New');
+}
+
+canvas {
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    background: #000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    font-family: 'Courier New', monospace;
+    overflow: hidden;
+}
+
+#gameContainer {
+    position: relative;
+}
+
+#gameCanvas {
+    display: block;
+    background: #0a0a1a;
+    border: 4px solid #00ffff;
+    box-shadow: 0 0 20px #00ffff, inset 0 0 20px rgba(0, 255, 255, 0.1);
+}
+
+#ui {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    pointer-events: none;
+}
+
+.hidden {
+    display: none !important;
+}
