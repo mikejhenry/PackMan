@@ -1684,8 +1684,12 @@ class UIRenderer {
         if (scores.length === 0) {
             ctx.save();
             ctx.textAlign = 'center';
-            ctx.font = '13px "Courier New", monospace';
-            ctx.fillStyle = 'rgba(140,140,140,0.65)';
+            ctx.font = 'bold 14px "Courier New", monospace';
+            ctx.strokeStyle = 'rgba(0,0,0,0.85)';
+            ctx.lineWidth = 3;
+            ctx.lineJoin = 'round';
+            ctx.strokeText('no scores yet — be the first!', x, y + 32);
+            ctx.fillStyle = 'rgba(200,200,200,0.95)';
             ctx.fillText('no scores yet — be the first!', x, y + 32);
             ctx.restore();
             return;
