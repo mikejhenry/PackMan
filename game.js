@@ -2111,8 +2111,11 @@ function showInitialsForm(score) {
     input.value = '';
     submit.disabled = true;
     overlay.classList.add('active');
-    // Small delay so the keyboard doesn't fight layout shift on mobile
-    setTimeout(() => input.focus(), 80);
+    // On mobile, programmatic focus outside a user gesture won't open the keyboard.
+    // The pulsing input border signals the user to tap it directly.
+    if (!window.matchMedia('(pointer: coarse)').matches) {
+        input.focus();
+    }
 }
 
 function hideInitialsForm() {

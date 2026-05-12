@@ -68,6 +68,9 @@ body {
     justify-content: center;
     align-items: center;
     z-index: 10;
+    /* Override body's touch-action:none so taps reach the form */
+    touch-action: auto;
+    pointer-events: auto;
 }
 
 #initialsOverlay.active {
@@ -127,12 +130,33 @@ body {
     outline: none;
     box-shadow: 0 0 12px rgba(0, 255, 255, 0.35);
     caret-color: #00ffff;
-    -webkit-tap-highlight-color: transparent;
+    touch-action: auto; /* must override body touch-action:none for keyboard to appear */
+    -webkit-tap-highlight-color: rgba(0,255,255,0.2);
+    animation: inputPulse 1.4s ease-in-out infinite;
+}
+
+@keyframes inputPulse {
+    0%, 100% { box-shadow: 0 0 12px rgba(0, 255, 255, 0.35); }
+    50%       { box-shadow: 0 0 26px rgba(0, 255, 255, 0.85); }
 }
 
 #initialsInput:focus {
     border-color: #ffffff;
     box-shadow: 0 0 20px rgba(0, 255, 255, 0.7);
+    animation: none;
+}
+
+#initialsTapHint {
+    display: none;
+    color: rgba(0, 255, 255, 0.55);
+    font-family: 'Courier New', monospace;
+    font-size: 11px;
+    letter-spacing: 1px;
+    margin-top: -6px;
+}
+
+@media (pointer: coarse) {
+    #initialsTapHint { display: block; }
 }
 
 #initialsSubmit {
