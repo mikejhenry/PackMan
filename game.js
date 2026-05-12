@@ -20,6 +20,7 @@ const GAME_STATE = {
     MENU: 'menu',
     PLAYING: 'playing',
     PAUSED: 'paused',
+    DYING: 'dying',
     GAME_OVER: 'gameOver',
     LEVEL_COMPLETE: 'levelComplete'
 };
@@ -919,6 +920,12 @@ class GameState {
         this.paused = false;
         this.lastTime = 0;
         this.deltaTime = 0;
+        // Death sequence
+        this.dyingTimer = 0;
+        this.deathX = 0;
+        this.deathY = 0;
+        // Drives the HUD life-icon animation (covers dying + 1s post-respawn)
+        this.lifeAnimTimer = 0;
     }
 
     loadHighScore() {
@@ -1002,6 +1009,7 @@ class GameState {
     }
 
     pauseGame() {
+        if (this.state === GAME_STATE.DYING) return;
         if (this.state === GAME_STATE.PLAYING) {
             this.state = GAME_STATE.PAUSED;
             audio.stopMusic();
@@ -1027,13 +1035,18 @@ class GameState {
     playerDeath() {
         this.lives--;
         this.player.lives = this.lives;
+        // Capture death position for the burst-ring animation
+        this.deathX = this.player.pixelX;
+        this.deathY = this.player.pixelY;
         audio.playDeath();
 
         if (this.lives <= 0) {
             this.gameOver();
         } else {
-            this.player.reset();
-            this.ghosts.forEach(g => g.reset());
+            this.state = GAME_STATE.DYING;
+            this.dyingTimer = 2000;
+            // 3 s total: 2 s death screen + 1 s post-respawn HUD pulse
+            this.lifeAnimTimer = 3000;
             this.ghostCombo = 0;
         }
     }
@@ -1046,6 +1059,21 @@ class GameState {
     update(deltaTime, currentTime) {
         this.deltaTime = deltaTime;
         this.lastTime = currentTime;
+
+        // Tick life-icon animation during both DYING and PLAYING
+        if (this.lifeAnimTimer > 0) {
+            this.lifeAnimTimer = Math.max(0, this.lifeAnimTimer - deltaTime);
+        }
+
+        if (this.state === GAME_STATE.DYING) {
+            this.dyingTimer -= deltaTime;
+            if (this.dyingTimer <= 0) {
+                this.state = GAME_STATE.PLAYING;
+                this.player.reset();
+                this.ghosts.forEach(g => g.reset());
+            }
+            return;
+        }
 
         if (this.state !== GAME_STATE.PLAYING) return;
 
@@ -1226,6 +1254,10 @@ class UIRenderer {
             case GAME_STATE.PLAYING:
                 this.renderHUD(game);
                 break;
+            case GAME_STATE.DYING:
+                this.renderHUD(game);
+                this.renderDeathScreen(game);
+                break;
             case GAME_STATE.PAUSED:
                 this.renderHUD(game);
                 this.renderPauseOverlay(game);
@@ -1281,6 +1313,7 @@ class UIRenderer {
 
     renderHUD(game) {
         const ctx = this.ctx;
+        const now = Date.now();
 
         ctx.fillStyle = '#ffffff';
         ctx.font = 'bold 16px "Courier New", monospace';
@@ -1294,9 +1327,42 @@ class UIRenderer {
         ctx.fillText(`LEVEL ${game.level}`, CANVAS_WIDTH - 10, 25);
 
         ctx.textAlign = 'left';
+        ctx.fillStyle = '#ffffff';
         ctx.fillText('LIVES:', 10, CANVAS_HEIGHT - 10);
+
+        const anim = game.lifeAnimTimer;          // 3000 → 0
+        const animNorm = anim / 3000;             // 1 → 0 (intensity)
+
+        // Remaining life icons — shimmer red ↔ white while anim is active
         for (let i = 0; i < game.lives; i++) {
-            this.drawMiniPlayer(80 + i * 25, CANVAS_HEIGHT - 15);
+            const ix = 80 + i * 25;
+            const iy = CANVAS_HEIGHT - 15;
+            ctx.save();
+            if (anim > 0) {
+                const rate = 180 - animNorm * 80;          // speeds up at start
+                const shimmer = Math.sin(now / rate + i * 1.2);
+                ctx.shadowColor = shimmer > 0 ? '#ff0000' : '#ffffff';
+                ctx.shadowBlur = Math.abs(shimmer) * animNorm * 14;
+            }
+            this.drawMiniPlayer(ix, iy);
+            ctx.restore();
+        }
+
+        // Ghost of the just-lost life — fades out over first second of anim
+        if (anim > 2000) {
+            const fade = (anim - 2000) / 1000;    // 1 → 0 over the first anim second
+            const lx = 80 + game.lives * 25;
+            const ly = CANVAS_HEIGHT - 15;
+            ctx.save();
+            ctx.globalAlpha = fade;
+            ctx.shadowColor = '#ff0000';
+            ctx.shadowBlur = 18 * fade;
+            ctx.fillStyle = '#ff3333';
+            ctx.beginPath();
+            ctx.arc(lx, ly, 8, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.shadowBlur = 0;
+            ctx.restore();
         }
     }
 
@@ -1313,6 +1379,113 @@ class UIRenderer {
         ctx.arc(x - 3, y - 1, 3, 0, Math.PI * 2);
         ctx.arc(x + 3, y - 1, 3, 0, Math.PI * 2);
         ctx.stroke();
+    }
+
+    renderDeathScreen(game) {
+        const ctx = this.ctx;
+        const now = Date.now();
+        // t: 0 → 1 over the 2-second death window
+        const t = 1 - game.dyingTimer / 2000;
+
+        // ── Dark vignette ──────────────────────────────────────────────────
+        const vigAlpha = Math.min(t * 4, 1) * 0.78;
+        ctx.fillStyle = `rgba(0,0,0,${vigAlpha})`;
+        ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+
+        // ── Burst rings from death point ───────────────────────────────────
+        // Three rings, staggered, alternating red / white
+        const ringPhase = Math.min(t / 0.55, 1);
+        for (let ring = 0; ring < 3; ring++) {
+            const delay = ring * 0.28;
+            const rt = Math.max(0, Math.min(1, (ringPhase - delay) * 2.2));
+            if (rt <= 0) continue;
+            const radius = rt * 130;
+            const alpha = (1 - rt) * 0.85;
+            ctx.beginPath();
+            ctx.arc(game.deathX, game.deathY, radius, 0, Math.PI * 2);
+            ctx.strokeStyle = ring % 2 === 0
+                ? `rgba(255,255,255,${alpha})`
+                : `rgba(255,30,30,${alpha})`;
+            ctx.lineWidth = Math.max(0.5, 3.5 - rt * 3);
+            ctx.stroke();
+        }
+
+        // ── "LIFE LOST" text + pip row ─────────────────────────────────────
+        // Fade in at t=0.18, hold, start fading at t=0.84
+        const textIn  = Math.min(1, Math.max(0, (t - 0.18) / 0.14));
+        const textOut = Math.min(1, Math.max(0, (0.90 - t) / 0.10));
+        const textAlpha = Math.min(textIn, textOut);
+
+        if (textAlpha > 0) {
+            ctx.save();
+            ctx.globalAlpha = textAlpha;
+
+            // Pulsing red glow on the title
+            const pulse = 0.55 + Math.sin(now / 110) * 0.45;
+            ctx.shadowColor = '#ff0000';
+            ctx.shadowBlur = 18 + pulse * 24;
+            ctx.fillStyle = '#ff2020';
+            ctx.font = 'bold 52px "Courier New", monospace';
+            ctx.textAlign = 'center';
+            ctx.fillText('LIFE LOST', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 - 28);
+
+            // Subtitle
+            ctx.shadowColor = '#ffffff';
+            ctx.shadowBlur = 8;
+            ctx.fillStyle = '#ffffff';
+            ctx.font = '16px "Courier New", monospace';
+            const livesLeft = game.lives;
+            ctx.fillText(
+                `${livesLeft} ${livesLeft === 1 ? 'LIFE' : 'LIVES'} REMAINING`,
+                CANVAS_WIDTH / 2,
+                CANVAS_HEIGHT / 2 + 18
+            );
+
+            // Pip row — remaining lives as glowing white dots, lost as a red ×
+            const pipR = 7;
+            const pip  = 22;
+            const maxLives = 3;
+            const rowX = CANVAS_WIDTH / 2 - ((maxLives - 1) * pip) / 2;
+            const rowY = CANVAS_HEIGHT / 2 + 52;
+
+            for (let i = 0; i < maxLives; i++) {
+                const px = rowX + i * pip;
+                if (i < livesLeft) {
+                    // Active — white with pulsing red halo
+                    ctx.shadowColor = '#ff0000';
+                    ctx.shadowBlur = 6 + pulse * 8;
+                    ctx.fillStyle = '#ffffff';
+                    ctx.beginPath();
+                    ctx.arc(px, rowY, pipR, 0, Math.PI * 2);
+                    ctx.fill();
+                } else {
+                    // Lost — dim red ×
+                    ctx.shadowBlur = 0;
+                    ctx.strokeStyle = 'rgba(200,30,30,0.55)';
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.moveTo(px - pipR, rowY - pipR);
+                    ctx.lineTo(px + pipR, rowY + pipR);
+                    ctx.moveTo(px + pipR, rowY - pipR);
+                    ctx.lineTo(px - pipR, rowY + pipR);
+                    ctx.stroke();
+                }
+            }
+
+            // Subtle red border pulse around the whole canvas
+            const borderAlpha = pulse * 0.18;
+            const grad = ctx.createRadialGradient(
+                CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2, CANVAS_HEIGHT * 0.25,
+                CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2, CANVAS_HEIGHT * 0.85
+            );
+            grad.addColorStop(0, 'rgba(0,0,0,0)');
+            grad.addColorStop(1, `rgba(180,0,0,${borderAlpha})`);
+            ctx.shadowBlur = 0;
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+
+            ctx.restore();
+        }
     }
 
     renderPauseOverlay(game) {
