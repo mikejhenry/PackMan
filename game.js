@@ -935,7 +935,8 @@ class Ghost {
         this.frightenedTimer = 0;
         this.eaten = false;
         this.homeTimer = 0;
-        this.lastDecisionTime = 0;
+        this.lastDecisionTileX = -1;
+        this.lastDecisionTileY = -1;
         this.animFrame = 0;
         this.animTimer = 0;
         this.targetX = 0;
@@ -952,6 +953,8 @@ class Ghost {
         this.frightenedTimer = 0;
         this.eaten = false;
         this.homeTimer = 0;
+        this.lastDecisionTileX = -1;
+        this.lastDecisionTileY = -1;
     }
 
     setFrightened(duration) {
@@ -1006,22 +1009,24 @@ class Ghost {
     }
 
     findPath(maze, targetX, targetY) {
-        const startTile = { x: this.x, y: this.y };
-        const queue = [{ ...startTile, path: [] }];
+        const opposite = this.getOppositeDirection(this.direction);
+        const queue = [{ x: this.x, y: this.y, path: [] }];
         const visited = new Set();
-        visited.add(`${startTile.x},${startTile.y}`);
+        visited.add(`${this.x},${this.y}`);
 
-        const maxDepth = 10;
+        const maxDepth = 15;
 
         while (queue.length > 0) {
             const current = queue.shift();
 
-            if (current.path.length > maxDepth) {
+            if (current.path.length >= maxDepth) {
                 return current.path[0] || this.direction;
             }
 
-            const dirs = ['up', 'down', 'left', 'right'];
-            for (const dir of dirs) {
+            for (const dir of ['up', 'down', 'left', 'right']) {
+                // Never reverse direction on the first step
+                if (current.path.length === 0 && dir === opposite) continue;
+
                 const d = DIRECTIONS[dir];
                 const newX = current.x + d.x;
                 const newY = current.y + d.y;
@@ -1040,11 +1045,16 @@ class Ghost {
             }
         }
 
+        // Fallback: any valid non-reverse direction, or reverse if trapped
         const validDirs = ['up', 'down', 'left', 'right'].filter(dir => {
+            if (dir === opposite) return false;
             const d = DIRECTIONS[dir];
             return isWalkable(maze, this.x + d.x, this.y + d.y);
         });
-        return validDirs[Math.floor(Math.random() * validDirs.length)] || this.direction;
+        if (validDirs.length > 0) return validDirs[Math.floor(Math.random() * validDirs.length)];
+        const oppD = DIRECTIONS[opposite];
+        if (isWalkable(maze, this.x + oppD.x, this.y + oppD.y)) return opposite;
+        return this.direction;
     }
 
     getOppositeDirection(dir) {
@@ -1055,9 +1065,7 @@ class Ghost {
     update(maze, player, ghosts, deltaTime, currentTime) {
         if (this.state === 'frightened') {
             this.frightenedTimer -= deltaTime;
-            if (this.frightenedTimer <= 0) {
-                this.state = 'chase';
-            }
+            if (this.frightenedTimer <= 0) this.state = 'chase';
         }
 
         if (this.state === 'eaten') {
@@ -1069,58 +1077,68 @@ class Ghost {
                 this.pixelY = this.startY * TILE_SIZE + TILE_SIZE / 2;
                 this.x = this.startX;
                 this.y = this.startY;
+                this.lastDecisionTileX = -1;
+                this.lastDecisionTileY = -1;
             }
             return;
         }
 
-        this.animTimer += deltaTime;
-        if (this.animTimer > 150) {
-            this.animTimer = 0;
-            this.animFrame = (this.animFrame + 1) % 2;
-        }
+        const speed = this.state === 'frightened' ? this.speed * 0.5 : this.speed;
 
-        if (currentTime - this.lastDecisionTime > GHOST_UPDATE_INTERVAL) {
-            this.lastDecisionTime = currentTime;
+        // Make direction decisions at tile centers, not on a clock.
+        // This prevents dogs from walking into walls and freezing mid-corridor.
+        const tileX = Math.floor(this.pixelX / TILE_SIZE);
+        const tileY = Math.floor(this.pixelY / TILE_SIZE);
+        const centerX = tileX * TILE_SIZE + TILE_SIZE / 2;
+        const centerY = tileY * TILE_SIZE + TILE_SIZE / 2;
+        const nearCenter = Math.abs(this.pixelX - centerX) <= speed + 0.5 &&
+                           Math.abs(this.pixelY - centerY) <= speed + 0.5;
+
+        if (nearCenter && (tileX !== this.lastDecisionTileX || tileY !== this.lastDecisionTileY)) {
+            this.lastDecisionTileX = tileX;
+            this.lastDecisionTileY = tileY;
+
+            // Snap exactly to center for clean pixel-aligned movement
+            this.pixelX = centerX;
+            this.pixelY = centerY;
+            this.x = tileX;
+            this.y = tileY;
+
+            const opposite = this.getOppositeDirection(this.direction);
 
             if (this.state === 'frightened') {
                 const validDirs = ['up', 'down', 'left', 'right'].filter(dir => {
+                    if (dir === opposite) return false;
                     const d = DIRECTIONS[dir];
-                    const newX = this.x + d.x;
-                    const newY = this.y + d.y;
-                    return isWalkable(maze, newX, newY) && dir !== this.getOppositeDirection(this.direction);
+                    return isWalkable(maze, tileX + d.x, tileY + d.y);
                 });
                 if (validDirs.length > 0) {
                     this.direction = validDirs[Math.floor(Math.random() * validDirs.length)];
+                } else {
+                    // Dead end — allow reversing
+                    const oppD = DIRECTIONS[opposite];
+                    if (isWalkable(maze, tileX + oppD.x, tileY + oppD.y)) this.direction = opposite;
                 }
             } else {
                 this.calculateTarget(player, ghosts);
-                const newDir = this.findPath(maze, this.targetX, this.targetY);
-                if (newDir !== this.getOppositeDirection(this.direction)) {
-                    this.direction = newDir;
-                }
+                this.direction = this.findPath(maze, this.targetX, this.targetY);
             }
         }
 
+        // Move in current direction
         const dir = DIRECTIONS[this.direction];
-        const speed = this.state === 'frightened' ? this.speed * 0.5 : this.speed;
         const newPixelX = this.pixelX + dir.x * speed;
         const newPixelY = this.pixelY + dir.y * speed;
 
         const checkX = newPixelX + dir.x * (TILE_SIZE / 2 - 2);
         const checkY = newPixelY + dir.y * (TILE_SIZE / 2 - 2);
-        const nextTileX = Math.floor(checkX / TILE_SIZE);
-        const nextTileY = Math.floor(checkY / TILE_SIZE);
-
-        if (isWalkable(maze, nextTileX, nextTileY)) {
+        if (isWalkable(maze, Math.floor(checkX / TILE_SIZE), Math.floor(checkY / TILE_SIZE))) {
             this.pixelX = newPixelX;
             this.pixelY = newPixelY;
         }
 
-        if (this.pixelX < 0) {
-            this.pixelX = CANVAS_WIDTH;
-        } else if (this.pixelX > CANVAS_WIDTH) {
-            this.pixelX = 0;
-        }
+        if (this.pixelX < 0) this.pixelX += CANVAS_WIDTH;
+        else if (this.pixelX > CANVAS_WIDTH) this.pixelX -= CANVAS_WIDTH;
 
         this.x = Math.floor(this.pixelX / TILE_SIZE);
         this.y = Math.floor(this.pixelY / TILE_SIZE);
