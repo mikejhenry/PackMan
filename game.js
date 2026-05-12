@@ -1620,12 +1620,12 @@ class UIRenderer {
         }
         ctx.restore();
 
-        // Two ghost followers
-        const ghostColors = ['#ff3333', '#ffb8ff'];
-        for (let g = 0; g < 2; g++) {
-            const gx = pacX - 32 - g * 27;
-            if (gx < -18 || gx > CANVAS_WIDTH + 18) continue;
-            this._drawChaseGhost(ctx, gx, y, ghostColors[g]);
+        // Two dog followers
+        const dogColors = ['#e8a020', '#c0703a'];
+        for (let d = 0; d < 2; d++) {
+            const dx = pacX - 42 - d * 32;
+            if (dx < -28 || dx > CANVAS_WIDTH + 28) continue;
+            this._drawChaseDog(ctx, dx, y, dogColors[d]);
         }
 
         // Mike character running
@@ -1638,32 +1638,77 @@ class UIRenderer {
         }
     }
 
-    _drawChaseGhost(ctx, x, y, color) {
-        const r = 9;
+    _drawChaseDog(ctx, x, y, color) {
+        const lp = (Date.now() / 110) % (Math.PI * 2);
         ctx.save();
-        ctx.fillStyle = color;
         ctx.shadowColor = color;
         ctx.shadowBlur = 7;
+
+        // Legs (behind body, drawn first)
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 2.2;
+        ctx.lineCap = 'round';
+        [
+            [x + 4,  Math.sin(lp)],
+            [x + 1,  Math.sin(lp + Math.PI)],
+            [x - 4,  Math.sin(lp + Math.PI)],
+            [x - 7,  Math.sin(lp)]
+        ].forEach(([lx, s]) => {
+            ctx.beginPath();
+            ctx.moveTo(lx, y + 5);
+            ctx.lineTo(lx + s * 3, y + 13);
+            ctx.stroke();
+        });
+
+        // Body
+        ctx.fillStyle = color;
         ctx.beginPath();
-        ctx.arc(x, y - 1, r, Math.PI, 0, false);
-        ctx.lineTo(x + r, y + r - 1);
-        ctx.lineTo(x + r * 0.55, y + r - 4);
-        ctx.lineTo(x, y + r - 1);
-        ctx.lineTo(x - r * 0.55, y + r - 4);
-        ctx.lineTo(x - r, y + r - 1);
-        ctx.closePath();
+        ctx.ellipse(x, y + 1, 9, 6, 0, 0, Math.PI * 2);
         ctx.fill();
-        ctx.fillStyle = '#ffffff';
+
+        // Tail (curves up from rear)
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        ctx.moveTo(x - 8, y - 1);
+        ctx.quadraticCurveTo(x - 15, y - 10, x - 10, y - 16);
+        ctx.stroke();
+
+        // Head
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        ctx.arc(x + 11, y - 3, 6, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Floppy ear
+        ctx.beginPath();
+        ctx.ellipse(x + 8, y + 2, 2.5, 5, -0.35, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Snout
+        ctx.beginPath();
+        ctx.ellipse(x + 17, y - 1, 3.5, 2.5, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Nose
+        ctx.fillStyle = '#1a1a1a';
         ctx.shadowBlur = 0;
         ctx.beginPath();
-        ctx.ellipse(x - 3, y - 2, 2.5, 3.2, 0, 0, Math.PI * 2);
-        ctx.ellipse(x + 3, y - 2, 2.5, 3.2, 0, 0, Math.PI * 2);
+        ctx.ellipse(x + 20, y - 2, 2, 1.5, 0, 0, Math.PI * 2);
         ctx.fill();
-        ctx.fillStyle = '#0000cc';
+
+        // Eye white
+        ctx.fillStyle = '#ffffff';
         ctx.beginPath();
-        ctx.arc(x - 2.5, y - 1.5, 1.3, 0, Math.PI * 2);
-        ctx.arc(x + 3.5, y - 1.5, 1.3, 0, Math.PI * 2);
+        ctx.arc(x + 12, y - 5, 2, 0, Math.PI * 2);
         ctx.fill();
+
+        // Pupil
+        ctx.fillStyle = '#111';
+        ctx.beginPath();
+        ctx.arc(x + 12.5, y - 5, 1, 0, Math.PI * 2);
+        ctx.fill();
+
         ctx.restore();
     }
 
