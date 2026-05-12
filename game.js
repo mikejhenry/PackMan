@@ -642,6 +642,97 @@ function _mikeFront(ctx, s, ph) {
     ctx.fill();
 }
 
+function drawGameDog(ctx, size, color, direction, frightenedTimer) {
+    const frightened = frightenedTimer > 0;
+    const blinking = frightenedTimer < 2000 && Math.floor(Date.now() / 200) % 2 === 0;
+    const bodyColor = frightened ? (blinking ? '#ffffff' : GHOST_COLORS.frightened) : color;
+
+    ctx.save();
+    if (direction === 'left') ctx.scale(-1, 1);
+    _gameDogSide(ctx, size, bodyColor, frightened);
+    ctx.restore();
+}
+
+function _gameDogSide(ctx, s, color, frightened) {
+    const lp = (Date.now() / 130) % (Math.PI * 2);
+
+    ctx.shadowColor = color;
+    ctx.shadowBlur = 6;
+
+    // Legs (drawn behind body)
+    ctx.strokeStyle = color;
+    ctx.lineWidth = Math.max(1.5, s * 0.1);
+    ctx.lineCap = 'round';
+    [
+        [ s * 0.12, Math.sin(lp)],
+        [ s * 0.04, Math.sin(lp + Math.PI)],
+        [-s * 0.14, Math.sin(lp + Math.PI)],
+        [-s * 0.22, Math.sin(lp)]
+    ].forEach(([lx, sw]) => {
+        ctx.beginPath();
+        ctx.moveTo(lx, s * 0.14);
+        ctx.lineTo(lx + sw * s * 0.12, s * 0.44);
+        ctx.stroke();
+    });
+
+    // Body
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.ellipse(-s * 0.04, s * 0.06, s * 0.3, s * 0.2, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Tail (curves upward from rear)
+    ctx.strokeStyle = color;
+    ctx.lineWidth = Math.max(1.5, s * 0.1);
+    ctx.beginPath();
+    ctx.moveTo(-s * 0.3, -s * 0.02);
+    ctx.quadraticCurveTo(-s * 0.5, -s * 0.3, -s * 0.34, -s * 0.46);
+    ctx.stroke();
+
+    // Head
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.arc(s * 0.3, -s * 0.1, s * 0.2, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Floppy ear
+    ctx.beginPath();
+    ctx.ellipse(s * 0.18, s * 0.06, s * 0.08, s * 0.15, -0.35, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Snout
+    ctx.beginPath();
+    ctx.ellipse(s * 0.48, -s * 0.03, s * 0.12, s * 0.08, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Nose
+    ctx.fillStyle = '#1a1a1a';
+    ctx.shadowBlur = 0;
+    ctx.beginPath();
+    ctx.ellipse(s * 0.58, -s * 0.07, s * 0.055, s * 0.045, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    if (frightened) {
+        // Worried X eyes
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 1.5;
+        const ex = s * 0.3, ey = -s * 0.17, er = s * 0.065;
+        ctx.beginPath();
+        ctx.moveTo(ex - er, ey - er); ctx.lineTo(ex + er, ey + er);
+        ctx.moveTo(ex + er, ey - er); ctx.lineTo(ex - er, ey + er);
+        ctx.stroke();
+    } else {
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.arc(s * 0.3, -s * 0.17, s * 0.07, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#111';
+        ctx.beginPath();
+        ctx.arc(s * 0.32, -s * 0.17, s * 0.038, 0, Math.PI * 2);
+        ctx.fill();
+    }
+}
+
 function _mikeBack(ctx, s, ph) {
     const sw = 0.42;
     const legL = Math.sin(ph) * sw;
@@ -1038,59 +1129,9 @@ class Ghost {
     render(ctx, level) {
         if (this.eaten) return;
 
-        const x = this.pixelX;
-        const y = this.pixelY;
-        const size = TILE_SIZE - 4;
-
         ctx.save();
-        ctx.translate(x, y);
-
-        let color = this.color;
-        if (this.state === 'frightened') {
-            if (this.frightenedTimer < 2000 && Math.floor(Date.now() / 200) % 2 === 0) {
-                color = '#ffffff';
-            } else {
-                color = GHOST_COLORS.frightened;
-            }
-        }
-
-        ctx.fillStyle = color;
-        ctx.beginPath();
-        ctx.arc(0, -2, size / 2 - 2, Math.PI, 0, false);
-        ctx.lineTo(size / 2 - 2, size / 2 - 4);
-
-        const waveHeight = 3;
-        const waveCount = 4;
-        const waveWidth = (size - 4) / waveCount;
-        for (let i = 0; i < waveCount; i++) {
-            const wx = size / 2 - 2 - (i + 1) * waveWidth;
-            const wy = size / 2 - 4 + (i % 2 === 0 ? waveHeight : 0);
-            ctx.lineTo(wx, wy);
-        }
-        ctx.closePath();
-        ctx.fill();
-
-        if (this.state === 'frightened') {
-            ctx.fillStyle = '#ffffff';
-            ctx.beginPath();
-            ctx.arc(-4, -2, 2, 0, Math.PI * 2);
-            ctx.arc(4, -2, 2, 0, Math.PI * 2);
-            ctx.fill();
-        } else {
-            ctx.fillStyle = '#ffffff';
-            ctx.beginPath();
-            ctx.ellipse(-4, -2, 4, 5, 0, 0, Math.PI * 2);
-            ctx.ellipse(4, -2, 4, 5, 0, 0, Math.PI * 2);
-            ctx.fill();
-
-            const pupilOffset = DIRECTIONS[this.direction];
-            ctx.fillStyle = '#0000aa';
-            ctx.beginPath();
-            ctx.arc(-4 + pupilOffset.x * 2, -2 + pupilOffset.y * 2, 2, 0, Math.PI * 2);
-            ctx.arc(4 + pupilOffset.x * 2, -2 + pupilOffset.y * 2, 2, 0, Math.PI * 2);
-            ctx.fill();
-        }
-
+        ctx.translate(this.pixelX, this.pixelY);
+        drawGameDog(ctx, TILE_SIZE - 4, this.color, this.direction, this.frightenedTimer);
         ctx.restore();
     }
 }
