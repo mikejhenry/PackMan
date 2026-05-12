@@ -426,6 +426,275 @@ const DIRECTIONS = {
     right: { x: 1, y: 0 }
 };
 
+// ============================================
+// MIKE CHARACTER DRAWING
+// ============================================
+
+function drawMikeCharacter(ctx, size, runPhase, direction, powered) {
+    const bob = Math.sin(runPhase * 2) * size * 0.05;
+    ctx.save();
+    ctx.translate(0, bob);
+    if (direction === 'left' || direction === 'right') {
+        if (direction === 'left') ctx.scale(-1, 1);
+        _mikeSide(ctx, size, runPhase);
+    } else if (direction === 'down') {
+        _mikeFront(ctx, size, runPhase);
+    } else {
+        _mikeBack(ctx, size, runPhase);
+    }
+    ctx.restore();
+    if (powered) {
+        ctx.save();
+        ctx.strokeStyle = `rgba(255,255,255,${0.5 + Math.sin(Date.now() / 100) * 0.3})`;
+        ctx.lineWidth = 2;
+        ctx.shadowColor = '#ffffff';
+        ctx.shadowBlur = 8;
+        ctx.beginPath();
+        ctx.arc(0, 0, size * 0.62, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.restore();
+    }
+}
+
+function _mikeSide(ctx, s, ph) {
+    const sw = 0.52;
+    const leg1 = Math.sin(ph) * sw;
+    const leg2 = -leg1;
+    const arm1 = Math.sin(ph + Math.PI) * sw * 0.65;
+    const arm2 = -arm1;
+
+    const headR   = s * 0.22;
+    const headCY  = -s * 0.28;
+    const hipY    = s * 0.12;
+    const legLen  = s * 0.3;
+    const armLen  = s * 0.2;
+    const shldrY  = -s * 0.07;
+
+    ctx.lineCap = 'round';
+
+    // Rear leg
+    const rl2x = Math.sin(leg2) * legLen + s * 0.02;
+    const rl2y = hipY + Math.cos(leg2) * legLen;
+    ctx.strokeStyle = PLAYER_COLORS.jeans;
+    ctx.lineWidth = Math.max(2, s * 0.16);
+    ctx.beginPath();
+    ctx.moveTo(s * 0.02, hipY);
+    ctx.lineTo(rl2x, rl2y);
+    ctx.stroke();
+    ctx.fillStyle = PLAYER_COLORS.shoes;
+    ctx.beginPath();
+    ctx.ellipse(rl2x + s * 0.09, rl2y, s * 0.11, s * 0.055, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Torso
+    ctx.fillStyle = PLAYER_COLORS.shirt;
+    ctx.beginPath();
+    ctx.roundRect(-s * 0.16, -s * 0.1, s * 0.32, s * 0.24, s * 0.05);
+    ctx.fill();
+
+    // Rear arm
+    const ra2x = Math.sin(arm2) * armLen + s * 0.02;
+    const ra2y = shldrY + Math.cos(arm2) * armLen;
+    ctx.strokeStyle = PLAYER_COLORS.skin;
+    ctx.lineWidth = Math.max(1.5, s * 0.1);
+    ctx.beginPath();
+    ctx.moveTo(s * 0.02, shldrY);
+    ctx.lineTo(ra2x, ra2y);
+    ctx.stroke();
+
+    // Front leg
+    const fl1x = Math.sin(leg1) * legLen + s * 0.02;
+    const fl1y = hipY + Math.cos(leg1) * legLen;
+    ctx.strokeStyle = PLAYER_COLORS.jeans;
+    ctx.lineWidth = Math.max(2, s * 0.16);
+    ctx.beginPath();
+    ctx.moveTo(s * 0.02, hipY);
+    ctx.lineTo(fl1x, fl1y);
+    ctx.stroke();
+    ctx.fillStyle = PLAYER_COLORS.shoes;
+    ctx.beginPath();
+    ctx.ellipse(fl1x + s * 0.09, fl1y, s * 0.11, s * 0.055, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = PLAYER_COLORS.shoeAccent;
+    ctx.beginPath();
+    ctx.ellipse(fl1x + s * 0.04, fl1y, s * 0.04, s * 0.035, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Front arm
+    const fa1x = Math.sin(arm1) * armLen + s * 0.02;
+    const fa1y = shldrY + Math.cos(arm1) * armLen;
+    ctx.strokeStyle = PLAYER_COLORS.skin;
+    ctx.lineWidth = Math.max(1.5, s * 0.1);
+    ctx.beginPath();
+    ctx.moveTo(s * 0.02, shldrY);
+    ctx.lineTo(fa1x, fa1y);
+    ctx.stroke();
+
+    // Head
+    ctx.fillStyle = PLAYER_COLORS.skin;
+    ctx.beginPath();
+    ctx.arc(0, headCY, headR, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Hair top arc
+    ctx.fillStyle = PLAYER_COLORS.hair;
+    ctx.beginPath();
+    ctx.arc(0, headCY - headR * 0.1, headR * 0.95, Math.PI * 1.12, Math.PI * 2.02);
+    ctx.lineTo(0, headCY - headR * 0.1);
+    ctx.closePath();
+    ctx.fill();
+    // Front tuft
+    ctx.beginPath();
+    ctx.arc(headR * 0.5, headCY - headR * 0.72, headR * 0.3, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Glasses lens
+    ctx.fillStyle = 'rgba(180,200,255,0.22)';
+    ctx.strokeStyle = PLAYER_COLORS.glassesFrame;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.arc(headR * 0.3, headCY - headR * 0.06, headR * 0.3, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+
+    // Eye
+    ctx.fillStyle = '#111';
+    ctx.beginPath();
+    ctx.arc(headR * 0.44, headCY - headR * 0.08, headR * 0.1, 0, Math.PI * 2);
+    ctx.fill();
+}
+
+function _mikeFront(ctx, s, ph) {
+    const sw = 0.42;
+    const legL = Math.sin(ph) * sw;
+    const legR = -legL;
+    const armL = -legL * 0.6;
+    const armR =  legL * 0.6;
+
+    const headR  = s * 0.22;
+    const headCY = -s * 0.28;
+    const hipY   = s * 0.12;
+    const legLen = s * 0.3;
+    const shldrY = -s * 0.07;
+    const armLen = s * 0.2;
+
+    ctx.lineCap = 'round';
+
+    // Legs
+    const llx = -s * 0.09 + Math.sin(legL) * legLen * 0.4;
+    const lly = hipY + Math.cos(Math.abs(legL)) * legLen;
+    const rlx =  s * 0.09 + Math.sin(legR) * legLen * 0.4;
+    const rly = hipY + Math.cos(Math.abs(legR)) * legLen;
+    ctx.strokeStyle = PLAYER_COLORS.jeans;
+    ctx.lineWidth = Math.max(2, s * 0.14);
+    ctx.beginPath(); ctx.moveTo(-s * 0.07, hipY); ctx.lineTo(llx, lly); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo( s * 0.07, hipY); ctx.lineTo(rlx, rly); ctx.stroke();
+    ctx.fillStyle = PLAYER_COLORS.shoes;
+    ctx.beginPath(); ctx.ellipse(llx, lly + s * 0.05, s * 0.09, s * 0.05, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(rlx, rly + s * 0.05, s * 0.09, s * 0.05, 0, 0, Math.PI * 2); ctx.fill();
+
+    // Torso
+    ctx.fillStyle = PLAYER_COLORS.shirt;
+    ctx.beginPath();
+    ctx.roundRect(-s * 0.18, -s * 0.1, s * 0.36, s * 0.24, s * 0.05);
+    ctx.fill();
+
+    // Arms
+    const alx = -s * 0.18 + Math.sin(armL) * armLen * 0.5;
+    const aly = shldrY + armLen * 0.85;
+    const arx =  s * 0.18 + Math.sin(armR) * armLen * 0.5;
+    const ary = shldrY + armLen * 0.85;
+    ctx.strokeStyle = PLAYER_COLORS.skin;
+    ctx.lineWidth = Math.max(1.5, s * 0.1);
+    ctx.beginPath(); ctx.moveTo(-s * 0.15, shldrY); ctx.lineTo(alx, aly); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo( s * 0.15, shldrY); ctx.lineTo(arx, ary); ctx.stroke();
+
+    // Head
+    ctx.fillStyle = PLAYER_COLORS.skin;
+    ctx.beginPath();
+    ctx.arc(0, headCY, headR, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Hair
+    ctx.fillStyle = PLAYER_COLORS.hair;
+    ctx.beginPath();
+    ctx.arc(0, headCY - headR * 0.1, headR, Math.PI * 1.05, Math.PI * 1.95);
+    ctx.lineTo(0, headCY - headR * 0.1);
+    ctx.closePath();
+    ctx.fill();
+
+    // Glasses (two lenses + bridge)
+    ctx.fillStyle = 'rgba(180,200,255,0.22)';
+    ctx.strokeStyle = PLAYER_COLORS.glassesFrame;
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.arc(-headR * 0.35, headCY - headR * 0.05, headR * 0.27, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    ctx.beginPath(); ctx.arc( headR * 0.35, headCY - headR * 0.05, headR * 0.27, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(-headR * 0.08, headCY - headR * 0.05);
+    ctx.lineTo( headR * 0.08, headCY - headR * 0.05);
+    ctx.stroke();
+
+    // Eyes
+    ctx.fillStyle = '#111';
+    ctx.beginPath();
+    ctx.arc(-headR * 0.35, headCY - headR * 0.06, headR * 0.1, 0, Math.PI * 2);
+    ctx.arc( headR * 0.35, headCY - headR * 0.06, headR * 0.1, 0, Math.PI * 2);
+    ctx.fill();
+}
+
+function _mikeBack(ctx, s, ph) {
+    const sw = 0.42;
+    const legL = Math.sin(ph) * sw;
+    const legR = -legL;
+    const armL = -legL * 0.6;
+    const armR =  legL * 0.6;
+
+    const headR  = s * 0.22;
+    const headCY = -s * 0.28;
+    const hipY   = s * 0.12;
+    const legLen = s * 0.3;
+    const shldrY = -s * 0.07;
+    const armLen = s * 0.2;
+
+    ctx.lineCap = 'round';
+
+    // Legs
+    const llx = -s * 0.09 + Math.sin(legL) * legLen * 0.4;
+    const lly = hipY + Math.cos(Math.abs(legL)) * legLen;
+    const rlx =  s * 0.09 + Math.sin(legR) * legLen * 0.4;
+    const rly = hipY + Math.cos(Math.abs(legR)) * legLen;
+    ctx.strokeStyle = PLAYER_COLORS.jeans;
+    ctx.lineWidth = Math.max(2, s * 0.14);
+    ctx.beginPath(); ctx.moveTo(-s * 0.07, hipY); ctx.lineTo(llx, lly); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo( s * 0.07, hipY); ctx.lineTo(rlx, rly); ctx.stroke();
+    ctx.fillStyle = PLAYER_COLORS.shoes;
+    ctx.beginPath(); ctx.ellipse(llx, lly + s * 0.05, s * 0.09, s * 0.05, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(rlx, rly + s * 0.05, s * 0.09, s * 0.05, 0, 0, Math.PI * 2); ctx.fill();
+
+    // Torso (back - slightly darker)
+    ctx.fillStyle = '#111111';
+    ctx.beginPath();
+    ctx.roundRect(-s * 0.18, -s * 0.1, s * 0.36, s * 0.24, s * 0.05);
+    ctx.fill();
+
+    // Arms
+    ctx.strokeStyle = PLAYER_COLORS.skin;
+    ctx.lineWidth = Math.max(1.5, s * 0.1);
+    ctx.beginPath(); ctx.moveTo(-s * 0.15, shldrY); ctx.lineTo(-s * 0.18 + Math.sin(armL) * armLen * 0.5, shldrY + armLen * 0.85); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo( s * 0.15, shldrY); ctx.lineTo( s * 0.18 + Math.sin(armR) * armLen * 0.5, shldrY + armLen * 0.85); ctx.stroke();
+
+    // Head (back = mostly hair)
+    ctx.fillStyle = PLAYER_COLORS.hair;
+    ctx.beginPath();
+    ctx.arc(0, headCY, headR, 0, Math.PI * 2);
+    ctx.fill();
+    // Skin visible at lower face area
+    ctx.fillStyle = PLAYER_COLORS.skin;
+    ctx.beginPath();
+    ctx.arc(0, headCY + headR * 0.35, headR * 0.65, 0, Math.PI);
+    ctx.fill();
+}
+
 class Player {
     constructor(x, y) {
         this.startX = x;
@@ -441,9 +710,7 @@ class Player {
         this.score = 0;
         this.powered = false;
         this.powerTimer = 0;
-        this.animFrame = 0;
-        this.animTimer = 0;
-        this.mouthOpen = true;
+        this.runPhase = 0;
     }
 
     reset() {
@@ -455,6 +722,7 @@ class Player {
         this.nextDirection = null;
         this.powered = false;
         this.powerTimer = 0;
+        this.runPhase = 0;
     }
 
     setDirection(dir) {
@@ -469,11 +737,8 @@ class Player {
             }
         }
 
-        this.animTimer += deltaTime;
-        if (this.animTimer > 100) {
-            this.animTimer = 0;
-            this.mouthOpen = !this.mouthOpen;
-        }
+        const _prevX = this.pixelX;
+        const _prevY = this.pixelY;
 
         // Try to change direction if one is buffered
         if (this.nextDirection) {
@@ -544,6 +809,10 @@ class Player {
 
         this.x = Math.floor(this.pixelX / TILE_SIZE);
         this.y = Math.floor(this.pixelY / TILE_SIZE);
+
+        if (this.pixelX !== _prevX || this.pixelY !== _prevY) {
+            this.runPhase = (this.runPhase + deltaTime * 0.008) % (Math.PI * 2);
+        }
     }
 
     activatePowerMode() {
@@ -552,85 +821,10 @@ class Player {
     }
 
     render(ctx, level) {
-        const x = this.pixelX;
-        const y = this.pixelY;
-        const size = TILE_SIZE - 4;
-
         ctx.save();
-        ctx.translate(x, y);
-
-        const rotations = { right: 0, down: Math.PI / 2, left: Math.PI, up: -Math.PI / 2 };
-        ctx.rotate(rotations[this.direction] || 0);
-
-        this.drawCharacter(ctx, size);
-
+        ctx.translate(this.pixelX, this.pixelY);
+        drawMikeCharacter(ctx, TILE_SIZE - 4, this.runPhase, this.direction, this.powered);
         ctx.restore();
-    }
-
-    drawCharacter(ctx, size) {
-        const s = size;
-        const halfS = s / 2;
-
-        ctx.fillStyle = PLAYER_COLORS.skin;
-        ctx.beginPath();
-        ctx.arc(0, -2, halfS * 0.7, 0, Math.PI * 2);
-        ctx.fill();
-
-        ctx.fillStyle = PLAYER_COLORS.hair;
-        for (let i = -3; i <= 3; i++) {
-            ctx.beginPath();
-            ctx.arc(i * 3, -halfS * 0.5, 4, 0, Math.PI * 2);
-            ctx.fill();
-        }
-        for (let i = -2; i <= 2; i++) {
-            ctx.beginPath();
-            ctx.arc(i * 3.5, -halfS * 0.65, 3.5, 0, Math.PI * 2);
-            ctx.fill();
-        }
-
-        ctx.strokeStyle = PLAYER_COLORS.glassesFrame;
-        ctx.lineWidth = 1.5;
-        ctx.beginPath();
-        ctx.arc(-5, 0, 5, 0, Math.PI * 2);
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.arc(5, 0, 5, 0, Math.PI * 2);
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.moveTo(0, 0);
-        ctx.lineTo(0, 0);
-        ctx.stroke();
-        ctx.fillStyle = 'rgba(200, 200, 200, 0.3)';
-        ctx.beginPath();
-        ctx.arc(-5, 0, 5, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.beginPath();
-        ctx.arc(5, 0, 5, 0, Math.PI * 2);
-        ctx.fill();
-
-        ctx.fillStyle = PLAYER_COLORS.shirt;
-        ctx.beginPath();
-        ctx.roundRect(-halfS * 0.5, halfS * 0.2, halfS, halfS * 0.6, 2);
-        ctx.fill();
-
-        ctx.fillStyle = PLAYER_COLORS.jeans;
-        ctx.fillRect(-halfS * 0.4, halfS * 0.7, halfS * 0.3, halfS * 0.3);
-        ctx.fillRect(halfS * 0.1, halfS * 0.7, halfS * 0.3, halfS * 0.3);
-
-        ctx.fillStyle = PLAYER_COLORS.shoes;
-        ctx.fillRect(-halfS * 0.45, halfS * 0.95, halfS * 0.35, 4);
-        ctx.fillRect(halfS * 0.1, halfS * 0.95, halfS * 0.35, 4);
-        ctx.fillStyle = PLAYER_COLORS.shoeAccent;
-        ctx.fillRect(-halfS * 0.4, halfS * 0.97, halfS * 0.08, 2);
-        ctx.fillRect(halfS * 0.15, halfS * 0.97, halfS * 0.08, 2);
-
-        if (this.powered) {
-            ctx.strokeStyle = `rgba(255, 255, 255, ${0.5 + Math.sin(Date.now() / 100) * 0.3})`;
-            ctx.lineWidth = 2;
-            ctx.beginPath();
-            ctx.arc(0, 0, halfS * 1.2, 0, Math.PI * 2);
-            ctx.stroke();
-        }
     }
 }
 
@@ -1422,18 +1616,12 @@ class UIRenderer {
             this._drawChaseGhost(ctx, gx, y, ghostColors[g]);
         }
 
-        // Pac-Man
-        if (pacX >= -14 && pacX <= CANVAS_WIDTH + 14) {
-            const mouth = Math.max(0.06, Math.abs(Math.sin(now / 70)) * 0.30);
+        // Mike character running
+        if (pacX >= -18 && pacX <= CANVAS_WIDTH + 18) {
+            const chaseRunPhase = (now / 120) % (Math.PI * 2);
             ctx.save();
-            ctx.fillStyle = '#ffff00';
-            ctx.shadowColor = '#ffff00';
-            ctx.shadowBlur = 10;
-            ctx.beginPath();
-            ctx.moveTo(pacX, y);
-            ctx.arc(pacX, y, 11, mouth, Math.PI * 2 - mouth);
-            ctx.closePath();
-            ctx.fill();
+            ctx.translate(pacX, y);
+            drawMikeCharacter(ctx, 22, chaseRunPhase, 'right', false);
             ctx.restore();
         }
     }
@@ -1607,17 +1795,10 @@ class UIRenderer {
 
     drawMiniPlayer(x, y) {
         const ctx = this.ctx;
-        ctx.fillStyle = PLAYER_COLORS.skin;
-        ctx.beginPath();
-        ctx.arc(x, y, 8, 0, Math.PI * 2);
-        ctx.fill();
-
-        ctx.strokeStyle = PLAYER_COLORS.glassesFrame;
-        ctx.lineWidth = 1;
-        ctx.beginPath();
-        ctx.arc(x - 3, y - 1, 3, 0, Math.PI * 2);
-        ctx.arc(x + 3, y - 1, 3, 0, Math.PI * 2);
-        ctx.stroke();
+        ctx.save();
+        ctx.translate(x, y);
+        drawMikeCharacter(ctx, 18, 0, 'right', false);
+        ctx.restore();
     }
 
     renderDeathScreen(game) {
