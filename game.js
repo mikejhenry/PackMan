@@ -642,10 +642,9 @@ function _mikeFront(ctx, s, ph) {
     ctx.fill();
 }
 
-function drawGameDog(ctx, size, color, direction, frightenedTimer) {
-    const frightened = frightenedTimer > 0;
-    const blinking = frightenedTimer < 2000 && Math.floor(Date.now() / 200) % 2 === 0;
-    const bodyColor = frightened ? (blinking ? '#ffffff' : GHOST_COLORS.frightened) : color;
+function drawGameDog(ctx, size, color, direction, isFrightened, frightenedTimer) {
+    const blinking = isFrightened && frightenedTimer < 2000 && Math.floor(Date.now() / 200) % 2 === 0;
+    const bodyColor = isFrightened ? (blinking ? '#ffffff' : GHOST_COLORS.frightened) : color;
 
     ctx.save();
     if (direction === 'left') ctx.scale(-1, 1);
@@ -970,6 +969,7 @@ class Ghost {
         this.eaten = true;
         this.state = 'eaten';
         this.homeTimer = 2000;
+        this.frightenedTimer = 0;
     }
 
     calculateTarget(player, ghosts) {
@@ -1073,6 +1073,7 @@ class Ghost {
             if (this.homeTimer <= 0) {
                 this.eaten = false;
                 this.state = 'chase';
+                this.frightenedTimer = 0;
                 this.pixelX = this.startX * TILE_SIZE + TILE_SIZE / 2;
                 this.pixelY = this.startY * TILE_SIZE + TILE_SIZE / 2;
                 this.x = this.startX;
@@ -1149,7 +1150,7 @@ class Ghost {
 
         ctx.save();
         ctx.translate(this.pixelX, this.pixelY);
-        drawGameDog(ctx, TILE_SIZE - 4, this.color, this.direction, this.frightenedTimer);
+        drawGameDog(ctx, TILE_SIZE - 4, this.color, this.direction, this.state === 'frightened', this.frightenedTimer);
         ctx.restore();
     }
 }
