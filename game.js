@@ -2114,24 +2114,11 @@ canvas.width = CANVAS_WIDTH;
 canvas.height = CANVAS_HEIGHT;
 
 function scaleCanvas() {
-    const isTouch     = window.matchMedia('(pointer: coarse)').matches;
-    const isLandscape = window.innerWidth > window.innerHeight;
+    // Touch devices: CSS min() + aspect-ratio handles sizing — don't fight it with JS.
+    if (window.matchMedia('(pointer: coarse)').matches) return;
 
-    let maxW, maxH;
-
-    if (isTouch && isLandscape) {
-        // Controls panel sits to the right (160px wide)
-        maxW = window.innerWidth  - 160;
-        maxH = window.innerHeight;
-    } else if (isTouch) {
-        // Controls strip sits below — reserve enough for the d-pad + padding
-        maxW = window.innerWidth;
-        maxH = window.innerHeight - 190;
-    } else {
-        maxW = window.innerWidth  - 40;
-        maxH = window.innerHeight - 40;
-    }
-
+    const maxW  = window.innerWidth  - 40;
+    const maxH  = window.innerHeight - 40;
     const scale = Math.min(maxW / CANVAS_WIDTH, maxH / CANVAS_HEIGHT, 1.5);
     canvas.style.width  = `${CANVAS_WIDTH  * scale}px`;
     canvas.style.height = `${CANVAS_HEIGHT * scale}px`;
@@ -2139,7 +2126,6 @@ function scaleCanvas() {
 
 scaleCanvas();
 window.addEventListener('resize', scaleCanvas);
-window.addEventListener('orientationchange', () => setTimeout(scaleCanvas, 50));
 
 const ui = new UIRenderer(ctx);
 

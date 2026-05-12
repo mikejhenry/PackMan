@@ -137,7 +137,7 @@ body {
     box-shadow: 0 0 18px rgba(255,238,0,0.9), inset 0 0 10px rgba(255,238,0,0.2);
 }
 
-/* ── Portrait: controls strip below the canvas ── */
+/* ── Portrait: canvas above, controls strip below ── */
 @media (pointer: coarse) and (orientation: portrait) {
     body {
         justify-content: flex-start;
@@ -150,6 +150,25 @@ body {
         flex-direction: column;
         justify-content: flex-start;
         align-items: center;
+        overflow: hidden;
+    }
+
+    /*
+     * Canvas wrap width = whichever is tighter:
+     *   full viewport width, OR
+     *   the height available for the canvas (dvh minus strip) scaled by aspect ratio
+     * This guarantees the canvas never clips horizontally OR pushes the controls off screen.
+     */
+    #canvasWrap {
+        width: min(100vw, calc((100dvh - 190px) * 28 / 31));
+        flex-shrink: 0;
+    }
+
+    /* Let CSS drive the display size; JS sizing is skipped on touch */
+    #gameCanvas {
+        width: 100% !important;
+        height: auto !important;
+        aspect-ratio: 28 / 31;
     }
 
     #touchControls {
@@ -157,15 +176,14 @@ body {
         flex-direction: row;
         justify-content: space-between;
         align-items: center;
-        /* flex:1 fills whatever vertical space the canvas didn't use */
-        flex: 1;
+        flex: 1;          /* fills whatever height remains below the canvas */
         width: 100%;
         padding: 0 20px;
         border-top: 1px solid rgba(0,255,255,0.25);
     }
 }
 
-/* ── Landscape: controls panel to the right of the canvas ── */
+/* ── Landscape: canvas left, controls panel right ── */
 @media (pointer: coarse) and (orientation: landscape) {
     body {
         justify-content: center;
@@ -176,6 +194,23 @@ body {
         flex-direction: row;
         align-items: stretch;
         height: 100dvh;
+        overflow: hidden;
+    }
+
+    /*
+     * Canvas wrap width = whichever is tighter:
+     *   viewport width minus control panel, OR
+     *   full viewport height scaled by aspect ratio
+     */
+    #canvasWrap {
+        width: min(calc(100vw - 160px), calc(100dvh * 28 / 31));
+        flex-shrink: 0;
+    }
+
+    #gameCanvas {
+        width: 100% !important;
+        height: auto !important;
+        aspect-ratio: 28 / 31;
     }
 
     #touchControls {
@@ -183,23 +218,21 @@ body {
         flex-direction: column;
         justify-content: center;
         align-items: center;
-        gap: 20px;
+        gap: 16px;
         width: 160px;
         flex-shrink: 0;
         padding: 12px 8px;
         border-left: 1px solid rgba(0,255,255,0.25);
     }
 
-    /* Slightly smaller d-pad for the tighter landscape height */
+    /* Smaller d-pad buttons so they fit the shorter landscape height */
     #dpad {
         grid-template-columns: repeat(3, 44px);
         grid-template-rows: repeat(3, 44px);
         gap: 3px;
     }
 
-    .dpad-btn {
-        font-size: 18px;
-    }
+    .dpad-btn { font-size: 18px; }
 
     .action-btn {
         padding: 10px 12px;
