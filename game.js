@@ -2050,23 +2050,38 @@ class UIRenderer {
     renderGameOver(game) {
         const ctx = this.ctx;
 
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.88)';
         ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
         ctx.fillStyle = '#ff0000';
         ctx.font = 'bold 42px "Courier New", monospace';
         ctx.textAlign = 'center';
-        ctx.fillText('GAME OVER', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 - 80);
+        ctx.fillText('GAME OVER', CANVAS_WIDTH / 2, 80);
 
         ctx.fillStyle = '#ffffff';
-        ctx.font = 'bold 24px "Courier New", monospace';
-        ctx.fillText(`Final Score: ${game.score}`, CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 - 30);
+        ctx.font = 'bold 22px "Courier New", monospace';
+        ctx.fillText(`Final Score: ${game.score}`, CANVAS_WIDTH / 2, 118);
 
-        if (!game.isHighScore(game.score)) {
-            ctx.fillStyle = '#ffffff';
-            ctx.font = '16px "Courier New", monospace';
-            ctx.fillText('Press ENTER to Play Again', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 30);
+        if (initialsSubmitted) {
+            // Score just saved — show updated leaderboard as confirmation
+            this.renderHighScores(game, CANVAS_WIDTH / 2, 148);
+
+            const hint = window.matchMedia('(pointer: coarse)').matches
+                ? 'Tap START to Play Again' : 'Press ENTER to Play Again';
+            ctx.fillStyle = 'rgba(255,255,255,0.55)';
+            ctx.font = '13px "Courier New", monospace';
+            ctx.fillText(hint, CANVAS_WIDTH / 2, CANVAS_HEIGHT - 18);
+        } else if (!game.isHighScore(game.score)) {
+            // Not a high score — show leaderboard and restart hint
+            this.renderHighScores(game, CANVAS_WIDTH / 2, 148);
+
+            const hint = window.matchMedia('(pointer: coarse)').matches
+                ? 'Tap START to Play Again' : 'Press ENTER to Play Again';
+            ctx.fillStyle = 'rgba(255,255,255,0.55)';
+            ctx.font = '13px "Courier New", monospace';
+            ctx.fillText(hint, CANVAS_WIDTH / 2, CANVAS_HEIGHT - 18);
         }
+        // else: high score but not yet submitted — initials overlay is covering the canvas
     }
 
     handleKeyPress(key) {
@@ -2098,7 +2113,8 @@ class UIRenderer {
 // INITIALS FORM (HTML overlay — mobile-friendly)
 // ============================================
 
-let initialsFormActive = false;
+let initialsFormActive  = false;
+let initialsSubmitted   = false; // prevents re-showing form after submit within same game-over
 
 function showInitialsForm(score) {
     if (initialsFormActive) return;
@@ -2138,6 +2154,7 @@ function setupInitialsForm() {
         game.saveHighScore(input.value, game.score);
         game.highScore = game.loadHighScore();
         ui.resetInput();
+        initialsSubmitted = true;
         hideInitialsForm();
     };
 
@@ -2250,12 +2267,13 @@ function updateTouchButtons() {
     if (!btnStart) return;
 
     // Show initials form once when game ends with a high score
-    if (game.state === GAME_STATE.GAME_OVER && game.isHighScore(game.score) && !initialsFormActive) {
+    if (game.state === GAME_STATE.GAME_OVER && game.isHighScore(game.score) && !initialsFormActive && !initialsSubmitted) {
         showInitialsForm(game.score);
     }
-    // Hide form if we leave GAME_OVER (e.g. game restarted)
-    if (game.state !== GAME_STATE.GAME_OVER && initialsFormActive) {
-        hideInitialsForm();
+    // Reset submitted flag and hide form when a new game starts
+    if (game.state !== GAME_STATE.GAME_OVER) {
+        if (initialsSubmitted) initialsSubmitted = false;
+        if (initialsFormActive) hideInitialsForm();
     }
 
     const onMenu = game.state === GAME_STATE.MENU || game.state === GAME_STATE.GAME_OVER;
