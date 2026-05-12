@@ -58,6 +58,112 @@ body {
     display: none !important;
 }
 
+/* ── Initials Overlay ───────────────────────────────────── */
+
+#initialsOverlay {
+    display: none;
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.82);
+    justify-content: center;
+    align-items: center;
+    z-index: 10;
+}
+
+#initialsOverlay.active {
+    display: flex;
+}
+
+#initialsForm {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+    padding: 28px 32px;
+    background: #050514;
+    border: 3px solid #ffee00;
+    border-radius: 12px;
+    box-shadow: 0 0 30px rgba(255, 238, 0, 0.5), inset 0 0 20px rgba(255, 238, 0, 0.05);
+    width: min(320px, 88%);
+}
+
+#initialsTitle {
+    color: #ffee00;
+    font-family: 'Courier New', monospace;
+    font-size: clamp(18px, 5vw, 26px);
+    font-weight: bold;
+    letter-spacing: 3px;
+    text-shadow: 0 0 12px #ffee00;
+}
+
+#initialsScoreDisplay {
+    color: #ffffff;
+    font-family: 'Courier New', monospace;
+    font-size: clamp(14px, 4vw, 20px);
+    font-weight: bold;
+}
+
+#initialsForm label {
+    color: #00ffff;
+    font-family: 'Courier New', monospace;
+    font-size: clamp(11px, 3vw, 14px);
+    letter-spacing: 1px;
+    text-shadow: 0 0 8px #00ffff;
+}
+
+#initialsInput {
+    width: 100%;
+    padding: 14px 10px;
+    background: #0a0a1a;
+    border: 2px solid #00ffff;
+    border-radius: 8px;
+    color: #ffffff;
+    font-family: 'Courier New', monospace;
+    font-size: clamp(28px, 8vw, 40px);
+    font-weight: bold;
+    letter-spacing: 18px;
+    text-align: center;
+    text-transform: uppercase;
+    outline: none;
+    box-shadow: 0 0 12px rgba(0, 255, 255, 0.35);
+    caret-color: #00ffff;
+    -webkit-tap-highlight-color: transparent;
+}
+
+#initialsInput:focus {
+    border-color: #ffffff;
+    box-shadow: 0 0 20px rgba(0, 255, 255, 0.7);
+}
+
+#initialsSubmit {
+    width: 100%;
+    padding: 16px 10px;
+    background: rgba(0, 0, 0, 0.85);
+    border: 2px solid #ffee00;
+    border-radius: 10px;
+    color: #ffee00;
+    font-family: 'Courier New', monospace;
+    font-size: clamp(14px, 4vw, 18px);
+    font-weight: bold;
+    letter-spacing: 2px;
+    cursor: pointer;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    box-shadow: 0 0 10px rgba(255, 238, 0, 0.35);
+    transition: background 0.08s, box-shadow 0.08s;
+}
+
+#initialsSubmit:disabled {
+    opacity: 0.4;
+    cursor: default;
+    box-shadow: none;
+}
+
+#initialsSubmit:not(:disabled):active {
+    background: rgba(255, 238, 0, 0.18);
+    box-shadow: 0 0 20px rgba(255, 238, 0, 0.9);
+}
+
 /* ── Touch Controls ─────────────────────────────────────── */
 
 #touchControls {

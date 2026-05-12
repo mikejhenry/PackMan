@@ -2062,17 +2062,7 @@ class UIRenderer {
         ctx.font = 'bold 24px "Courier New", monospace';
         ctx.fillText(`Final Score: ${game.score}`, CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 - 30);
 
-        if (game.isHighScore(game.score)) {
-            ctx.fillStyle = '#ffff00';
-            ctx.font = 'bold 20px "Courier New", monospace';
-            ctx.fillText('NEW HIGH SCORE!', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 10);
-
-            ctx.fillStyle = '#ffffff';
-            ctx.font = '16px "Courier New", monospace';
-            ctx.fillText('Enter Initials: ' + this.initialsInput + '_', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 50);
-
-            this.inputActive = true;
-        } else {
+        if (!game.isHighScore(game.score)) {
             ctx.fillStyle = '#ffffff';
             ctx.font = '16px "Courier New", monospace';
             ctx.fillText('Press ENTER to Play Again', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 30);
@@ -2105,6 +2095,58 @@ class UIRenderer {
 }
 
 // ============================================
+// INITIALS FORM (HTML overlay — mobile-friendly)
+// ============================================
+
+let initialsFormActive = false;
+
+function showInitialsForm(score) {
+    if (initialsFormActive) return;
+    initialsFormActive = true;
+    const overlay = document.getElementById('initialsOverlay');
+    const scoreEl = document.getElementById('initialsScoreDisplay');
+    const input   = document.getElementById('initialsInput');
+    const submit  = document.getElementById('initialsSubmit');
+    scoreEl.textContent = `SCORE: ${score}`;
+    input.value = '';
+    submit.disabled = true;
+    overlay.classList.add('active');
+    // Small delay so the keyboard doesn't fight layout shift on mobile
+    setTimeout(() => input.focus(), 80);
+}
+
+function hideInitialsForm() {
+    initialsFormActive = false;
+    document.getElementById('initialsOverlay').classList.remove('active');
+}
+
+function setupInitialsForm() {
+    const input  = document.getElementById('initialsInput');
+    const submit = document.getElementById('initialsSubmit');
+
+    input.addEventListener('input', () => {
+        // Strip non-alpha, uppercase, cap at 3
+        input.value = input.value.replace(/[^a-zA-Z]/g, '').toUpperCase().slice(0, 3);
+        submit.disabled = input.value.length < 3;
+    });
+
+    const doSubmit = () => {
+        if (input.value.length < 3) return;
+        game.saveHighScore(input.value, game.score);
+        game.highScore = game.loadHighScore();
+        ui.resetInput();
+        hideInitialsForm();
+    };
+
+    submit.addEventListener('click', doSubmit);
+    submit.addEventListener('touchend', e => { e.preventDefault(); doSubmit(); }, { passive: false });
+
+    input.addEventListener('keydown', e => {
+        if (e.key === 'Enter') { e.preventDefault(); doSubmit(); }
+    });
+}
+
+// ============================================
 // CANVAS SETUP
 // ============================================
 
@@ -2130,17 +2172,8 @@ window.addEventListener('resize', scaleCanvas);
 const ui = new UIRenderer(ctx);
 
 window.addEventListener('keydown', (e) => {
-    if (game.state === GAME_STATE.GAME_OVER && ui.inputActive) {
-        const result = ui.handleKeyPress(e.key);
-        if (result === 'submit') {
-            game.saveHighScore(ui.getInitials(), game.score);
-            game.highScore = game.loadHighScore();
-            ui.resetInput();
-        }
-        if (result) {
-            e.preventDefault();
-        }
-    }
+    // HTML initials form handles its own keyboard events; skip legacy handler
+    if (initialsFormActive) return;
 });
 
 // ============================================
@@ -2173,7 +2206,7 @@ function setupTouchControls() {
         audio.resume();
         if (game.state === GAME_STATE.MENU) {
             game.startGame();
-        } else if (game.state === GAME_STATE.GAME_OVER && !ui.inputActive) {
+        } else if (game.state === GAME_STATE.GAME_OVER && !initialsFormActive) {
             game.init();
             game.startGame();
         }
@@ -2212,6 +2245,16 @@ function updateTouchButtons() {
     const btnStart = document.getElementById('btnStart');
     const btnPause = document.getElementById('btnPause');
     if (!btnStart) return;
+
+    // Show initials form once when game ends with a high score
+    if (game.state === GAME_STATE.GAME_OVER && game.isHighScore(game.score) && !initialsFormActive) {
+        showInitialsForm(game.score);
+    }
+    // Hide form if we leave GAME_OVER (e.g. game restarted)
+    if (game.state !== GAME_STATE.GAME_OVER && initialsFormActive) {
+        hideInitialsForm();
+    }
+
     const onMenu = game.state === GAME_STATE.MENU || game.state === GAME_STATE.GAME_OVER;
     btnStart.style.display = onMenu  ? '' : 'none';
     btnPause.style.display = !onMenu ? '' : 'none';
@@ -2258,7 +2301,7 @@ function handleInput() {
         game.pauseGame();
     }
 
-    if (game.state === GAME_STATE.GAME_OVER && !ui.inputActive && input.isActionPressed('start')) {
+    if (game.state === GAME_STATE.GAME_OVER && !initialsFormActive && input.isActionPressed('start')) {
         game.init();
         game.startGame();
     }
@@ -2273,6 +2316,7 @@ function handleInput() {
 function init() {
     game.init();
     setupTouchControls();
+    setupInitialsForm();
     requestAnimationFrame(gameLoop);
 }
 

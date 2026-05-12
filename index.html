@@ -11,6 +11,19 @@
         <div id="canvasWrap">
             <canvas id="gameCanvas"></canvas>
             <div id="ui"></div>
+            <div id="initialsOverlay">
+                <div id="initialsForm">
+                    <div id="initialsTitle">NEW HIGH SCORE!</div>
+                    <div id="initialsScoreDisplay"></div>
+                    <label for="initialsInput">ENTER YOUR INITIALS</label>
+                    <input id="initialsInput" type="text" maxlength="3"
+                           autocomplete="off" autocorrect="off"
+                           autocapitalize="characters" spellcheck="false"
+                           inputmode="text" enterkeyhint="done"
+                           placeholder="AAA">
+                    <button id="initialsSubmit" disabled>SAVE SCORE ▶</button>
+                </div>
+            </div>
         </div>
         <div id="touchControls">
             <div id="dpad">
