@@ -1486,8 +1486,12 @@ class UIRenderer {
         // Tagline
         ctx.save();
         ctx.textAlign = 'center';
-        ctx.font = 'italic 13px "Courier New", monospace';
-        ctx.fillStyle = 'rgba(0,210,255,0.52)';
+        ctx.font = 'bold italic 15px "Courier New", monospace';
+        ctx.strokeStyle = 'rgba(0,0,0,0.85)';
+        ctx.lineWidth = 3;
+        ctx.lineJoin = 'round';
+        ctx.strokeText('the classic reimagined', CANVAS_WIDTH / 2, 163);
+        ctx.fillStyle = 'rgba(0,220,255,0.92)';
         ctx.fillText('the classic reimagined', CANVAS_WIDTH / 2, 163);
         ctx.restore();
 
@@ -1513,8 +1517,12 @@ class UIRenderer {
         // Controls
         ctx.save();
         ctx.textAlign = 'center';
-        ctx.font = '12px "Courier New", monospace';
-        ctx.fillStyle = 'rgba(170,170,170,0.62)';
+        ctx.font = 'bold 13px "Courier New", monospace';
+        ctx.strokeStyle = 'rgba(0,0,0,0.85)';
+        ctx.lineWidth = 3;
+        ctx.lineJoin = 'round';
+        ctx.strokeText('ARROWS / WASD  ·  SPACE: PAUSE  ·  M: MUSIC', CANVAS_WIDTH / 2, 233);
+        ctx.fillStyle = 'rgba(200,200,200,0.95)';
         ctx.fillText('ARROWS / WASD  ·  SPACE: PAUSE  ·  M: MUSIC', CANVAS_WIDTH / 2, 233);
         ctx.restore();
 
@@ -1530,8 +1538,12 @@ class UIRenderer {
         // Footer
         ctx.save();
         ctx.textAlign = 'center';
-        ctx.font = '11px "Courier New", monospace';
-        ctx.fillStyle = 'rgba(90,90,110,0.55)';
+        ctx.font = 'bold 13px "Courier New", monospace';
+        ctx.strokeStyle = 'rgba(0,0,0,0.85)';
+        ctx.lineWidth = 3;
+        ctx.lineJoin = 'round';
+        ctx.strokeText('by Mike Henry  ·  2026', CANVAS_WIDTH / 2, CANVAS_HEIGHT - 16);
+        ctx.fillStyle = 'rgba(160,160,185,0.95)';
         ctx.fillText('by Mike Henry  ·  2026', CANVAS_WIDTH / 2, CANVAS_HEIGHT - 16);
         ctx.restore();
     }
