@@ -648,7 +648,7 @@ function drawGameDog(ctx, size, color, direction, isFrightened, frightenedTimer)
 
     ctx.save();
     if (direction === 'left') ctx.scale(-1, 1);
-    _gameDogSide(ctx, size, bodyColor, frightened);
+    _gameDogSide(ctx, size, bodyColor, isFrightened);
     ctx.restore();
 }
 
