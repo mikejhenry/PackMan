@@ -1271,43 +1271,278 @@ class UIRenderer {
 
     renderMenu(game) {
         const ctx = this.ctx;
+        const now = Date.now();
 
-        ctx.fillStyle = '#ffff00';
-        ctx.font = 'bold 36px "Courier New", monospace';
+        // Atmospheric radial vignette over the game board
+        const vig = ctx.createRadialGradient(
+            CANVAS_WIDTH / 2, CANVAS_HEIGHT * 0.4, 60,
+            CANVAS_WIDTH / 2, CANVAS_HEIGHT * 0.4, CANVAS_HEIGHT * 0.78
+        );
+        vig.addColorStop(0, 'rgba(0,18,36,0.38)');
+        vig.addColorStop(1, 'rgba(0,0,8,0.76)');
+        ctx.fillStyle = vig;
+        ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+
+        // Top attract chase
+        this._renderChaseRow(ctx, now, 52);
+
+        // Title
+        this._renderTitle(ctx, now, 138);
+
+        // Tagline
+        ctx.save();
         ctx.textAlign = 'center';
-        ctx.fillText("MIKE'S PAC-MAN", CANVAS_WIDTH / 2, 150);
+        ctx.font = 'italic 13px "Courier New", monospace';
+        ctx.fillStyle = 'rgba(0,210,255,0.52)';
+        ctx.fillText('the classic reimagined', CANVAS_WIDTH / 2, 163);
+        ctx.restore();
 
-        ctx.fillStyle = '#00ffff';
-        ctx.font = '16px "Courier New", monospace';
-        ctx.fillText('Press ENTER to Start', CANVAS_WIDTH / 2, 200);
+        // Divider
+        this._renderDivider(ctx, now, 180);
 
+        // Blinking "Press Enter"
+        if (Math.floor(now / 580) % 2 === 0) {
+            ctx.save();
+            ctx.textAlign = 'center';
+            ctx.font = 'bold 17px "Courier New", monospace';
+            ctx.shadowColor = '#00ffff';
+            ctx.shadowBlur = 14;
+            ctx.strokeStyle = 'rgba(0,0,0,0.88)';
+            ctx.lineWidth = 3;
+            ctx.lineJoin = 'round';
+            ctx.strokeText('▶  PRESS ENTER TO START  ◀', CANVAS_WIDTH / 2, 210);
+            ctx.fillStyle = '#00ffff';
+            ctx.fillText('▶  PRESS ENTER TO START  ◀', CANVAS_WIDTH / 2, 210);
+            ctx.restore();
+        }
+
+        // Controls
+        ctx.save();
+        ctx.textAlign = 'center';
+        ctx.font = '12px "Courier New", monospace';
+        ctx.fillStyle = 'rgba(170,170,170,0.62)';
+        ctx.fillText('ARROWS / WASD  ·  SPACE: PAUSE  ·  M: MUSIC', CANVAS_WIDTH / 2, 233);
+        ctx.restore();
+
+        // Second divider
+        this._renderDivider(ctx, now + 700, 250);
+
+        // High scores
+        this.renderHighScores(game, CANVAS_WIDTH / 2, 278);
+
+        // Bottom attract chase (offset time so it's out of phase with top)
+        this._renderChaseRow(ctx, now + 2600, CANVAS_HEIGHT - 52);
+
+        // Footer
+        ctx.save();
+        ctx.textAlign = 'center';
+        ctx.font = '11px "Courier New", monospace';
+        ctx.fillStyle = 'rgba(90,90,110,0.55)';
+        ctx.fillText('by Mike Henry  ·  2026', CANVAS_WIDTH / 2, CANVAS_HEIGHT - 16);
+        ctx.restore();
+    }
+
+    // Large neon title with layered glow
+    _renderTitle(ctx, now, y) {
+        const cx = CANVAS_WIDTH / 2;
+        const pulse = 0.5 + Math.sin(now / 1100) * 0.5;
+
+        ctx.save();
+        ctx.textAlign = 'center';
+        ctx.font = 'bold 66px "Courier New", monospace';
+
+        // Outer magenta halo (nearly transparent fill, shadow does the work)
+        ctx.shadowColor = '#ff00ff';
+        ctx.shadowBlur = 40 + pulse * 20;
+        ctx.fillStyle = 'rgba(255,0,255,0.1)';
+        ctx.fillText('PACK MAN', cx, y);
+
+        // Cyan stroke with glow
+        ctx.shadowColor = '#00ffff';
+        ctx.shadowBlur = 12 + pulse * 8;
+        ctx.strokeStyle = '#00ccff';
+        ctx.lineWidth = 4;
+        ctx.lineJoin = 'round';
+        ctx.strokeText('PACK MAN', cx, y);
+
+        // Bright yellow fill with tight inner glow
+        ctx.shadowColor = '#ffff99';
+        ctx.shadowBlur = 6 + pulse * 5;
+        ctx.fillStyle = '#ffee00';
+        ctx.fillText('PACK MAN', cx, y);
+
+        ctx.restore();
+    }
+
+    // Gradient horizontal rule that pulses gently
+    _renderDivider(ctx, now, y) {
+        const pulse = 0.65 + Math.sin(now / 1400) * 0.35;
+        const g = ctx.createLinearGradient(0, y, CANVAS_WIDTH, y);
+        g.addColorStop(0,    'rgba(0,255,255,0)');
+        g.addColorStop(0.15, 'rgba(0,255,255,0.52)');
+        g.addColorStop(0.5,  `rgba(255,0,255,${0.55 + pulse * 0.25})`);
+        g.addColorStop(0.85, 'rgba(0,255,255,0.52)');
+        g.addColorStop(1,    'rgba(0,255,255,0)');
+        ctx.save();
+        ctx.shadowColor = '#00ffff';
+        ctx.shadowBlur = 5;
+        ctx.strokeStyle = g;
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(18, y);
+        ctx.lineTo(CANVAS_WIDTH - 18, y);
+        ctx.stroke();
+        ctx.restore();
+    }
+
+    // Pac-Man eating dots across a row with ghost followers
+    _renderChaseRow(ctx, now, y) {
+        const period = 5400;
+        const t = (now % period) / period;
+        const pacX = -16 + t * (CANVAS_WIDTH + 32);
+
+        // Dots (disappear when pac-man passes)
+        ctx.save();
+        ctx.fillStyle = '#ffff88';
+        ctx.shadowColor = '#ffff00';
+        ctx.shadowBlur = 5;
+        for (let dx = 20; dx < CANVAS_WIDTH - 10; dx += 22) {
+            if (dx + 4 < pacX) continue;
+            ctx.beginPath();
+            ctx.arc(dx, y, 2.5, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        ctx.restore();
+
+        // Two ghost followers
+        const ghostColors = ['#ff3333', '#ffb8ff'];
+        for (let g = 0; g < 2; g++) {
+            const gx = pacX - 32 - g * 27;
+            if (gx < -18 || gx > CANVAS_WIDTH + 18) continue;
+            this._drawChaseGhost(ctx, gx, y, ghostColors[g]);
+        }
+
+        // Pac-Man
+        if (pacX >= -14 && pacX <= CANVAS_WIDTH + 14) {
+            const mouth = Math.max(0.06, Math.abs(Math.sin(now / 70)) * 0.30);
+            ctx.save();
+            ctx.fillStyle = '#ffff00';
+            ctx.shadowColor = '#ffff00';
+            ctx.shadowBlur = 10;
+            ctx.beginPath();
+            ctx.moveTo(pacX, y);
+            ctx.arc(pacX, y, 11, mouth, Math.PI * 2 - mouth);
+            ctx.closePath();
+            ctx.fill();
+            ctx.restore();
+        }
+    }
+
+    _drawChaseGhost(ctx, x, y, color) {
+        const r = 9;
+        ctx.save();
+        ctx.fillStyle = color;
+        ctx.shadowColor = color;
+        ctx.shadowBlur = 7;
+        ctx.beginPath();
+        ctx.arc(x, y - 1, r, Math.PI, 0, false);
+        ctx.lineTo(x + r, y + r - 1);
+        ctx.lineTo(x + r * 0.55, y + r - 4);
+        ctx.lineTo(x, y + r - 1);
+        ctx.lineTo(x - r * 0.55, y + r - 4);
+        ctx.lineTo(x - r, y + r - 1);
+        ctx.closePath();
+        ctx.fill();
         ctx.fillStyle = '#ffffff';
-        ctx.font = '14px "Courier New", monospace';
-        ctx.fillText('Controls: Arrow Keys or WASD', CANVAS_WIDTH / 2, 250);
-        ctx.fillText('SPACE: Pause | M: Toggle Music', CANVAS_WIDTH / 2, 275);
-
-        this.renderHighScores(game, CANVAS_WIDTH / 2, 350);
+        ctx.shadowBlur = 0;
+        ctx.beginPath();
+        ctx.ellipse(x - 3, y - 2, 2.5, 3.2, 0, 0, Math.PI * 2);
+        ctx.ellipse(x + 3, y - 2, 2.5, 3.2, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#0000cc';
+        ctx.beginPath();
+        ctx.arc(x - 2.5, y - 1.5, 1.3, 0, Math.PI * 2);
+        ctx.arc(x + 3.5, y - 1.5, 1.3, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
     }
 
     renderHighScores(game, x, y) {
         const ctx = this.ctx;
         const scores = game.getHighScores();
 
-        ctx.fillStyle = '#ff00ff';
-        ctx.font = 'bold 20px "Courier New", monospace';
+        // Section header
+        ctx.save();
         ctx.textAlign = 'center';
-        ctx.fillText('HIGH SCORES', x, y);
-
-        ctx.fillStyle = '#ffffff';
-        ctx.font = '14px "Courier New", monospace';
+        ctx.font = 'bold 14px "Courier New", monospace';
+        ctx.shadowColor = '#ff00ff';
+        ctx.shadowBlur = 8;
+        ctx.fillStyle = '#ff88ff';
+        ctx.fillText('— HIGH SCORES —', x, y);
+        ctx.restore();
 
         if (scores.length === 0) {
-            ctx.fillText('No scores yet!', x, y + 30);
-        } else {
-            scores.forEach((score, i) => {
-                const text = `${i + 1}. ${score.initials} - ${score.score}`;
-                ctx.fillText(text, x, y + 30 + i * 22);
-            });
+            ctx.save();
+            ctx.textAlign = 'center';
+            ctx.font = '13px "Courier New", monospace';
+            ctx.fillStyle = 'rgba(140,140,140,0.65)';
+            ctx.fillText('no scores yet — be the first!', x, y + 32);
+            ctx.restore();
+            return;
+        }
+
+        const rankColors = ['#ffd700', '#c0c0c0', '#cd7f32'];
+        const displayed = Math.min(scores.length, 8);
+        const rowH = 28;
+
+        for (let i = 0; i < displayed; i++) {
+            const entry = scores[i];
+            const ey = y + 30 + i * rowH;
+            const isTop = i < 3;
+            const rankColor = rankColors[i] || 'rgba(190,190,190,0.75)';
+
+            // Subtle row background for top 3
+            if (isTop) {
+                ctx.save();
+                ctx.fillStyle = `rgba(255,255,255,${0.03 + (2 - i) * 0.015})`;
+                ctx.beginPath();
+                ctx.rect(x - 155, ey - 15, 310, 21);
+                ctx.fill();
+                ctx.restore();
+            }
+
+            ctx.save();
+            // Rank
+            ctx.textAlign = 'right';
+            ctx.font = isTop
+                ? 'bold 13px "Courier New", monospace'
+                : '13px "Courier New", monospace';
+            if (isTop) { ctx.shadowColor = rankColor; ctx.shadowBlur = 5; }
+            ctx.fillStyle = rankColor;
+            ctx.fillText(`#${i + 1}`, x - 110, ey);
+
+            // Initials
+            ctx.shadowBlur = 0;
+            ctx.textAlign = 'left';
+            ctx.fillStyle = isTop ? '#ffffff' : 'rgba(195,195,195,0.82)';
+            ctx.fillText(entry.initials, x - 95, ey);
+
+            // Dot leader
+            ctx.textAlign = 'center';
+            ctx.font = '12px "Courier New", monospace';
+            ctx.fillStyle = 'rgba(100,100,100,0.45)';
+            ctx.fillText('· · · · · · · ·', x + 10, ey);
+
+            // Score
+            ctx.textAlign = 'right';
+            ctx.font = isTop
+                ? 'bold 13px "Courier New", monospace'
+                : '13px "Courier New", monospace';
+            if (isTop) { ctx.shadowColor = rankColor; ctx.shadowBlur = 4; }
+            ctx.fillStyle = rankColor;
+            ctx.fillText(entry.score.toLocaleString(), x + 148, ey);
+
+            ctx.restore();
         }
     }
 
