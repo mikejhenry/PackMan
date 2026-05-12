@@ -1315,20 +1315,24 @@ class UIRenderer {
         const ctx = this.ctx;
         const now = Date.now();
 
-        ctx.fillStyle = '#ffffff';
+        // Draws text with a solid dark stroke so it reads against any background
+        const hudText = (text, x, y, align) => {
+            ctx.textAlign = align;
+            ctx.strokeStyle = 'rgba(0,0,0,0.92)';
+            ctx.lineWidth = 4;
+            ctx.lineJoin = 'round';
+            ctx.strokeText(text, x, y);
+            ctx.fillStyle = '#ffffff';
+            ctx.fillText(text, x, y);
+        };
+
+        ctx.save();
         ctx.font = 'bold 16px "Courier New", monospace';
-        ctx.textAlign = 'left';
-        ctx.fillText(`SCORE: ${game.score}`, 10, 25);
-
-        ctx.textAlign = 'center';
-        ctx.fillText(`HIGH: ${game.highScore}`, CANVAS_WIDTH / 2, 25);
-
-        ctx.textAlign = 'right';
-        ctx.fillText(`LEVEL ${game.level}`, CANVAS_WIDTH - 10, 25);
-
-        ctx.textAlign = 'left';
-        ctx.fillStyle = '#ffffff';
-        ctx.fillText('LIVES:', 10, CANVAS_HEIGHT - 10);
+        hudText(`SCORE: ${game.score}`,      10,               25, 'left');
+        hudText(`HIGH: ${game.highScore}`,   CANVAS_WIDTH / 2, 25, 'center');
+        hudText(`LEVEL ${game.level}`,       CANVAS_WIDTH - 10, 25, 'right');
+        hudText('LIVES:',                    10,               CANVAS_HEIGHT - 10, 'left');
+        ctx.restore();
 
         const anim = game.lifeAnimTimer;          // 3000 → 0
         const animNorm = anim / 3000;             // 1 → 0 (intensity)
