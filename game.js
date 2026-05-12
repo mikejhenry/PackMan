@@ -1604,7 +1604,7 @@ class UIRenderer {
         ctx.lineJoin = 'round';
         ctx.strokeText('by Mike Henry  ·  2026', CANVAS_WIDTH / 2, CANVAS_HEIGHT - 16);
         ctx.fillStyle = 'rgba(160,160,185,0.95)';
-        ctx.fillText('by Mike Henry  ·  2026', CANVAS_WIDTH / 2, CANVAS_HEIGHT - 16);
+        ctx.fillText('by Michael Johnson-Henry  ·  2026', CANVAS_WIDTH / 2, CANVAS_HEIGHT - 16);
         ctx.restore();
     }
 
