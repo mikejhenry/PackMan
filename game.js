@@ -2042,7 +2042,9 @@ class UIRenderer {
 
         ctx.fillStyle = '#ffffff';
         ctx.font = '16px "Courier New", monospace';
-        ctx.fillText('Press SPACE to Resume', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 20);
+        const resumeHint = window.matchMedia('(pointer: coarse)').matches
+            ? 'Tap PAUSE to Resume' : 'Press SPACE to Resume';
+        ctx.fillText(resumeHint, CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 20);
     }
 
     renderGameOver(game) {
@@ -2112,13 +2114,16 @@ canvas.width = CANVAS_WIDTH;
 canvas.height = CANVAS_HEIGHT;
 
 function scaleCanvas() {
-    const maxWidth = window.innerWidth - 40;
-    const maxHeight = window.innerHeight - 40;
-    const scaleX = maxWidth / CANVAS_WIDTH;
+    const isTouchLayout = window.matchMedia('(pointer: coarse)').matches;
+    const padding = isTouchLayout ? 0 : 40;
+    const controlsH = isTouchLayout ? 170 : 0; // reserve vertical space for d-pad
+    const maxWidth  = window.innerWidth  - padding;
+    const maxHeight = window.innerHeight - padding - controlsH;
+    const scaleX = maxWidth  / CANVAS_WIDTH;
     const scaleY = maxHeight / CANVAS_HEIGHT;
-    const scale = Math.min(scaleX, scaleY, 1.5);
+    const scale  = Math.min(scaleX, scaleY, 1.5);
 
-    canvas.style.width = `${CANVAS_WIDTH * scale}px`;
+    canvas.style.width  = `${CANVAS_WIDTH  * scale}px`;
     canvas.style.height = `${CANVAS_HEIGHT * scale}px`;
 }
 
@@ -2142,6 +2147,80 @@ window.addEventListener('keydown', (e) => {
 });
 
 // ============================================
+// TOUCH CONTROLS
+// ============================================
+
+let activeTouchDir = null;
+
+function setupTouchControls() {
+    // D-pad — set activeTouchDir while finger is held down
+    document.querySelectorAll('.dpad-btn').forEach(btn => {
+        const dir = btn.dataset.dir;
+        btn.addEventListener('touchstart', e => {
+            e.preventDefault();
+            activeTouchDir = dir;
+        }, { passive: false });
+        btn.addEventListener('touchend', e => {
+            e.preventDefault();
+            if (activeTouchDir === dir) activeTouchDir = null;
+        }, { passive: false });
+        btn.addEventListener('touchcancel', e => {
+            if (activeTouchDir === dir) activeTouchDir = null;
+        }, { passive: false });
+    });
+
+    // Start button
+    document.getElementById('btnStart').addEventListener('touchstart', e => {
+        e.preventDefault();
+        audio.init();
+        audio.resume();
+        if (game.state === GAME_STATE.MENU) {
+            game.startGame();
+        } else if (game.state === GAME_STATE.GAME_OVER && !ui.inputActive) {
+            game.init();
+            game.startGame();
+        }
+    }, { passive: false });
+
+    // Pause button
+    document.getElementById('btnPause').addEventListener('touchstart', e => {
+        e.preventDefault();
+        if (game.state === GAME_STATE.PLAYING || game.state === GAME_STATE.PAUSED) {
+            game.pauseGame();
+        }
+    }, { passive: false });
+
+    // Swipe anywhere on the canvas to steer
+    let swipeX = null, swipeY = null;
+    canvas.addEventListener('touchstart', e => {
+        e.preventDefault();
+        swipeX = e.touches[0].clientX;
+        swipeY = e.touches[0].clientY;
+    }, { passive: false });
+    canvas.addEventListener('touchend', e => {
+        e.preventDefault();
+        if (swipeX == null) return;
+        const dx = e.changedTouches[0].clientX - swipeX;
+        const dy = e.changedTouches[0].clientY - swipeY;
+        swipeX = swipeY = null;
+        if (Math.abs(dx) < 18 && Math.abs(dy) < 18) return; // tap, not swipe
+        input.nextDirection = Math.abs(dx) > Math.abs(dy)
+            ? (dx > 0 ? 'right' : 'left')
+            : (dy > 0 ? 'down'  : 'up');
+    }, { passive: false });
+}
+
+// Show/hide start vs pause button based on game state
+function updateTouchButtons() {
+    const btnStart = document.getElementById('btnStart');
+    const btnPause = document.getElementById('btnPause');
+    if (!btnStart) return;
+    const onMenu = game.state === GAME_STATE.MENU || game.state === GAME_STATE.GAME_OVER;
+    btnStart.style.display = onMenu  ? '' : 'none';
+    btnPause.style.display = !onMenu ? '' : 'none';
+}
+
+// ============================================
 // MAIN GAME LOOP
 // ============================================
 
@@ -2152,6 +2231,7 @@ function gameLoop(currentTime) {
     lastFrameTime = currentTime;
 
     handleInput();
+    updateTouchButtons();
 
     game.update(deltaTime, currentTime);
 
@@ -2162,6 +2242,11 @@ function gameLoop(currentTime) {
 }
 
 function handleInput() {
+    // Re-apply held touch direction every frame so the player keeps turning
+    if (activeTouchDir && game.state === GAME_STATE.PLAYING) {
+        input.nextDirection = activeTouchDir;
+    }
+
     if (game.state === GAME_STATE.MENU && input.isActionPressed('start')) {
         audio.init();
         audio.resume();
@@ -2190,6 +2275,7 @@ function handleInput() {
 
 function init() {
     game.init();
+    setupTouchControls();
     requestAnimationFrame(gameLoop);
 }
 

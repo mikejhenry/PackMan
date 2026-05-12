@@ -10,6 +10,18 @@
     <div id="gameContainer">
         <canvas id="gameCanvas"></canvas>
         <div id="ui"></div>
+        <div id="touchControls">
+            <div id="dpad">
+                <button id="btnUp"    class="dpad-btn" data-dir="up">▲</button>
+                <button id="btnLeft"  class="dpad-btn" data-dir="left">◀</button>
+                <button id="btnRight" class="dpad-btn" data-dir="right">▶</button>
+                <button id="btnDown"  class="dpad-btn" data-dir="down">▼</button>
+            </div>
+            <div id="actionBtns">
+                <button id="btnStart" class="action-btn">START</button>
+                <button id="btnPause" class="action-btn">⏸ PAUSE</button>
+            </div>
+        </div>
     </div>
 
     <script src="game.js"></script>
